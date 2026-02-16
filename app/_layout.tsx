@@ -11,6 +11,7 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="index" options={{ title: 'UPI Provider Simulator' }} />
+        <Stack.Screen name="pay" options={{ title: 'Payment Request' }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
