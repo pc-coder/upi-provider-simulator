@@ -1,23 +1,62 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, ToastAndroid, Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { PaymentDetailsCard } from '@/components/payment-details-card';
 import { type UpiPaymentData } from '@/utils/upi-parser';
+import { buildFssRequest } from '@/utils/fss-request';
 import { API_BASE_URL } from '@/constants/api';
 
 const REQUIRED_FIELDS = ['pa', 'pn', 'am', 'cu', 'tr'] as const;
 
-async function submitResponse(tr: string, status: 'SUCCESS' | 'FAILURE') {
-  const res = await fetch(`${API_BASE_URL}/api/upi/response`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tr, status }),
+function showToast(message: string) {
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(message, ToastAndroid.LONG);
+  }
+}
+
+async function submitResponse(
+  params: Record<string, string>,
+  status: 'SUCCESS' | 'FAILURE',
+) {
+  const now = new Date();
+  const timestamp =
+    now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '') +
+    now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/:/g, '');
+
+  const fssRequest = await buildFssRequest({
+    OperationName: params.OperationName ?? 'MerchantStatusUpdateReq',
+    TxnId: params.TxnId ?? 'IDF226BZNWS09ASG17YMUE6VPB9KZP899K5',
+    TxnType: params.TxnType ?? 'SendMoney',
+    OrgTxnId: params.OrgTxnId ?? 'IDFA849295D96B642E9AB238471FEC21A01',
+    OrgCustRefId: params.OrgCustRefId ?? '299456962261',
+    OrgTxnRefId: params.tr ?? '',
+    OrgTxnTimeStamp: params.OrgTxnTimeStamp ?? timestamp,
+    PayerMobileNumber: params.PayerMobileNumber ?? '',
+    PayeeMobileNumber: params.PayeeMobileNumber ?? '+919515522050',
+    PayerVirAddr: params.PayerVirAddr ?? '9999999999@idfcfirst',
+    PayeeVirAddr: params.pa ?? 'ccbillpay.987845@idfcbankuat',
+    Amount: params.am ?? '90000.00',
+    Remarks: params.tn ?? 'Payment from PhonePe',
+    ResCode: status === 'SUCCESS' ? '000' : '100',
+    ResDesc: status === 'SUCCESS' ? 'Approved' : 'Declined',
+    TimeStamp: timestamp,
+    MerchantID: params.MerchantID ?? params.mc ?? '16199',
+    SubMerchantID: params.SubMerchantID ?? '-',
+    TerminalID: params.TerminalID ?? '169991',
   });
+
+  const res = await fetch(`${API_BASE_URL}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+    body: JSON.stringify(fssRequest),
+  });
+
   if (!res.ok) {
-    throw new Error(`Server responded with ${res.status}`);
+    const body = await res.text().catch(() => '');
+    throw new Error(`Server responded with ${res.status}${body ? ': ' + body : ''}`);
   }
 }
 
@@ -50,10 +89,12 @@ export default function PayScreen() {
   const handlePress = async (status: 'SUCCESS' | 'FAILURE') => {
     setSubmitting(true);
     try {
-      await submitResponse(data.tr, status);
+      await submitResponse(params, status);
       setSubmitted(status);
+      showToast(`Payment ${status.toLowerCase()} sent to server`);
     } catch (e: any) {
-      Alert.alert('Error', e.message ?? 'Failed to submit response');
+      const message = e?.message ?? 'Unknown error';
+      showToast(`Network error: ${message}`);
     } finally {
       setSubmitting(false);
     }
