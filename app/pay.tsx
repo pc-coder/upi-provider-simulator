@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, ToastAndroid, Platform } from 'react-native';
+import { Pressable, StyleSheet, ToastAndroid, Platform, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
@@ -7,7 +7,7 @@ import { ThemedView } from '@/components/themed-view';
 import { PaymentDetailsCard } from '@/components/payment-details-card';
 import { type UpiPaymentData } from '@/utils/upi-parser';
 import { buildFssRequest } from '@/utils/fss-request';
-import { API_BASE_URL } from '@/constants/api';
+import { ENVIRONMENTS, DEFAULT_ENVIRONMENT, type Environment } from '@/constants/api';
 
 const REQUIRED_FIELDS = ['pa', 'pn', 'am', 'cu', 'tr'] as const;
 
@@ -20,6 +20,7 @@ function showToast(message: string) {
 async function submitResponse(
   params: Record<string, string>,
   status: 'SUCCESS' | 'FAILURE',
+  environment: Environment,
 ) {
   const now = new Date();
   const timestamp =
@@ -48,7 +49,7 @@ async function submitResponse(
     TerminalID: params.TerminalID ?? '169991',
   });
 
-  const res = await fetch(`${API_BASE_URL}`, {
+  const res = await fetch(ENVIRONMENTS[environment], {
     method: 'POST',
     headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
     body: JSON.stringify(fssRequest),
@@ -64,6 +65,7 @@ export default function PayScreen() {
   const params = useLocalSearchParams<Record<string, string>>();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState<'SUCCESS' | 'FAILURE' | null>(null);
+  const [environment, setEnvironment] = useState<Environment>(DEFAULT_ENVIRONMENT);
 
   const hasRequired = REQUIRED_FIELDS.every((f) => params[f]);
 
@@ -89,7 +91,7 @@ export default function PayScreen() {
   const handlePress = async (status: 'SUCCESS' | 'FAILURE') => {
     setSubmitting(true);
     try {
-      await submitResponse(params, status);
+      await submitResponse(params, status, environment);
       setSubmitted(status);
       showToast(`Payment ${status.toLowerCase()} sent to server`);
     } catch (e: any) {
@@ -103,6 +105,32 @@ export default function PayScreen() {
   return (
     <ThemedView style={styles.container}>
       <PaymentDetailsCard data={data} />
+
+      {!submitted && (
+        <ThemedView style={styles.envContainer}>
+          <ThemedText type="defaultSemiBold" style={styles.envLabel}>
+            Environment
+          </ThemedText>
+          <ThemedView style={styles.envOptions}>
+            {(Object.keys(ENVIRONMENTS) as Environment[]).map((env) => {
+              const selected = env === environment;
+              return (
+                <Pressable
+                  key={env}
+                  onPress={() => setEnvironment(env)}
+                  disabled={submitting}
+                  style={styles.envOption}
+                >
+                  <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
+                    {selected ? <View style={styles.radioInner} /> : null}
+                  </View>
+                  <ThemedText style={styles.envOptionText}>{env}</ThemedText>
+                </Pressable>
+              );
+            })}
+          </ThemedView>
+        </ThemedView>
+      )}
 
       {submitted ? (
         <ThemedView style={styles.resultContainer}>
@@ -172,6 +200,46 @@ const styles = StyleSheet.create({
   },
   resultContainer: {
     marginTop: 32,
+  },
+  envContainer: {
+    marginTop: 24,
+    alignSelf: 'stretch',
+  },
+  envLabel: {
+    marginBottom: 8,
+  },
+  envOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  envOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingRight: 8,
+  },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#9ca3af',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+  },
+  radioOuterSelected: {
+    borderColor: '#2563eb',
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#2563eb',
+  },
+  envOptionText: {
+    fontSize: 14,
   },
   successText: {
     color: '#22c55e',
