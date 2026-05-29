@@ -71,9 +71,9 @@ export default function PayScreen() {
 
   if (!hasRequired) {
     return (
-      <ThemedView style={styles.container}>
-        <ThemedText type="subtitle">Invalid payment request</ThemedText>
-        <ThemedText style={styles.hint}>Missing required UPI parameters.</ThemedText>
+      <ThemedView style={styles.container} testID="invalid-payment-screen">
+        <ThemedText type="subtitle" testID="invalid-payment-title">Invalid payment request</ThemedText>
+        <ThemedText style={styles.hint} testID="invalid-payment-hint">Missing required UPI parameters.</ThemedText>
       </ThemedView>
     );
   }
@@ -103,12 +103,12 @@ export default function PayScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={styles.container} testID="pay-screen">
       <PaymentDetailsCard data={data} />
 
       {!submitted && (
-        <ThemedView style={styles.envContainer}>
-          <ThemedText type="defaultSemiBold" style={styles.envLabel}>
+        <ThemedView style={styles.envContainer} testID="environment-selector">
+          <ThemedText type="defaultSemiBold" style={styles.envLabel} testID="environment-label">
             Environment
           </ThemedText>
           <ThemedView style={styles.envOptions}>
@@ -120,11 +120,15 @@ export default function PayScreen() {
                   onPress={() => setEnvironment(env)}
                   disabled={submitting}
                   style={styles.envOption}
+                  testID={`env-radio-${env}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected, disabled: submitting }}
+                  accessibilityLabel={`Environment ${env}`}
                 >
                   <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
-                    {selected ? <View style={styles.radioInner} /> : null}
+                    {selected ? <View style={styles.radioInner} testID={`env-radio-${env}-indicator`} /> : null}
                   </View>
-                  <ThemedText style={styles.envOptionText}>{env}</ThemedText>
+                  <ThemedText style={styles.envOptionText} testID={`env-radio-${env}-label`}>{env}</ThemedText>
                 </Pressable>
               );
             })}
@@ -133,8 +137,12 @@ export default function PayScreen() {
       )}
 
       {submitted ? (
-        <ThemedView style={styles.resultContainer}>
-          <ThemedText type="defaultSemiBold" style={submitted === 'SUCCESS' ? styles.successText : styles.failureText}>
+        <ThemedView style={styles.resultContainer} testID="payment-result">
+          <ThemedText
+            type="defaultSemiBold"
+            style={submitted === 'SUCCESS' ? styles.successText : styles.failureText}
+            testID="payment-result-text"
+          >
             Payment marked as {submitted.toLowerCase()}
           </ThemedText>
         </ThemedView>
@@ -144,8 +152,11 @@ export default function PayScreen() {
             style={[styles.button, styles.failureButton]}
             onPress={() => handlePress('FAILURE')}
             disabled={submitting}
+            testID="payment-failure-button"
+            accessibilityRole="button"
+            accessibilityLabel="Mark payment as failure"
           >
-            <ThemedText type="defaultSemiBold" style={styles.buttonText}>
+            <ThemedText type="defaultSemiBold" style={styles.buttonText} testID="payment-failure-button-text">
               Failure
             </ThemedText>
           </Pressable>
@@ -153,8 +164,11 @@ export default function PayScreen() {
             style={[styles.button, styles.successButton]}
             onPress={() => handlePress('SUCCESS')}
             disabled={submitting}
+            testID="payment-success-button"
+            accessibilityRole="button"
+            accessibilityLabel="Mark payment as success"
           >
-            <ThemedText type="defaultSemiBold" style={styles.buttonText}>
+            <ThemedText type="defaultSemiBold" style={styles.buttonText} testID="payment-success-button-text">
               {submitting ? 'Sending...' : 'Success'}
             </ThemedText>
           </Pressable>

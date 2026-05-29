@@ -5,9 +5,9 @@ import { ThemedView } from '@/components/themed-view';
 
 export default function HomeScreen() {
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="subtitle">No payment request received</ThemedText>
-      <ThemedText style={styles.hint}>
+    <ThemedView style={styles.container} testID="home-screen">
+      <ThemedText type="subtitle" testID="home-title">No payment request received</ThemedText>
+      <ThemedText style={styles.hint} testID="home-hint">
         Open a upi://pay link to see payment details here.
       </ThemedText>
     </ThemedView>
